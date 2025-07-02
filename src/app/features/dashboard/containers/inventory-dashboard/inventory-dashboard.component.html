@@ -1,0 +1,52 @@
+<div class="inventory-dashboard">
+  <header class="dashboard-header">
+    <h1>Inventory Dashboard</h1>
+    <p class="subtitle">Sandbox Pattern Example - Smart Container Component</p>
+  </header>
+
+  <!-- Error Display -->
+  @if (error()) {
+    <div class="error-banner">
+      <span>{{ error() }}</span>
+      <button class="close-btn" (click)="clearError()">×</button>
+    </div>
+  }
+
+  <!-- Dashboard Stats - Dumb Component -->
+  <app-dashboard-stats
+    [totalItems]="itemCount()"
+    [totalValue]="totalInventoryValue()"
+    [lowStockCount]="lowStockItems().length"
+    [loading]="loading()"
+  />
+
+  <!-- Item List - Dumb Component -->
+  <section class="items-section">
+    <h2>Items</h2>
+    <app-item-list
+      [items]="items()"
+      [loading]="loading()"
+      [selectedItemId]="selectedItem()?.id || null"
+      (itemSelected)="onItemSelected($event)"
+      (itemDeleted)="onItemDeleted($event)"
+      (itemEdited)="onItemEdited($event)"
+    />
+  </section>
+
+  <!-- Selected Item Details -->
+  @if (selectedItem()) {
+    <section class="selected-item">
+      <h3>Selected Item Details</h3>
+      <div class="item-details-card">
+        <h4>{{ selectedItem()!.name }}</h4>
+        <p>{{ selectedItem()!.description }}</p>
+        <div class="details-grid">
+          <div><strong>Category:</strong> {{ selectedItem()!.category }}</div>
+          <div><strong>Quantity:</strong> {{ selectedItem()!.quantity }}</div>
+          <div><strong>Price:</strong> ${{ selectedItem()!.price | number:'1.2-2' }}</div>
+          <div><strong>Total Value:</strong> ${{ (selectedItem()!.price * selectedItem()!.quantity) | number:'1.2-2' }}</div>
+        </div>
+      </div>
+    </section>
+  }
+</div>

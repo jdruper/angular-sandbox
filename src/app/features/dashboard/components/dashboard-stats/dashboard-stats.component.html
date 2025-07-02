@@ -1,0 +1,22 @@
+<div class="dashboard-stats" [class.loading]="loading">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Items</div>
+      <div class="stat-value">{{ totalItems }}</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Total Value</div>
+      <div class="stat-value">${{ totalValue | number:'1.2-2' }}</div>
+    </div>
+    
+    <div class="stat-card" [class.warning]="lowStockCount > 0">
+      <div class="stat-label">Low Stock Items</div>
+      <div class="stat-value">{{ lowStockCount }}</div>
+    </div>
+  </div>
+  
+  @if (loading) {
+    <div class="loading-overlay">Loading stats...</div>
+  }
+</div>

@@ -1,0 +1,54 @@
+<div class="item-list" [class.loading]="loading">
+  @if (loading) {
+    <div class="loading-state">Loading items...</div>
+  } @else if (items.length === 0) {
+    <div class="empty-state">No items found</div>
+  } @else {
+    <div class="items-grid">
+      @for (item of items; track item.id) {
+        <div 
+          class="item-card" 
+          [class.selected]="selectedItemId === item.id"
+          (click)="onSelectItem(item)"
+        >
+          <div class="item-header">
+            <h3 class="item-name">{{ item.name }}</h3>
+            <div class="item-actions">
+              <button 
+                class="action-btn edit" 
+                (click)="onEditItem(item); $event.stopPropagation()"
+                title="Edit item"
+              >
+                ✏️
+              </button>
+              <button 
+                class="action-btn delete" 
+                (click)="onDeleteItem(item.id); $event.stopPropagation()"
+                title="Delete item"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+          
+          <p class="item-description">{{ item.description }}</p>
+          
+          <div class="item-details">
+            <div class="detail-item">
+              <span class="label">Category:</span>
+              <span class="value">{{ item.category }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Quantity:</span>
+              <span class="value" [class.low-stock]="item.quantity < 5">{{ item.quantity }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Price:</span>
+              <span class="value">${{ item.price | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

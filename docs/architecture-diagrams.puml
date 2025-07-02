@@ -1,0 +1,308 @@
+@startuml Sandbox Pattern Architecture Overview
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+skinparam arrow {
+    Color #333333
+    FontColor #333333
+}
+
+title Angular Sandbox Pattern - Architecture Overview
+
+package "Container Component Layer" as ContainerLayer {
+    component [InventoryDashboardComponent] as Container #E3F2FD
+    note right of Container : • Component-scoped services\n• Handles user interactions\n• Orchestrates business logic\n• Passes data to presentation components
+}
+
+package "Sandbox Pattern Core" as SandboxCore {
+    component [ActionService\n(Facade)] as Action #FFF3E0
+    component [StateService\n(Signals)] as State #E8F5E8
+    component [TransformationService\n(Pure Functions)] as Transform #F3E5F5
+    component [ApiService\n(HTTP Only)] as Api #FCE4EC
+    
+    Action --> State : manages
+    Action --> Transform : uses
+    Action --> Api : calls
+    
+    note right of Action : • Business logic orchestration\n• Component interactions\n• Error handling\n• Validation calls
+    note right of State : • Angular Signals\n• Computed values\n• State mutations only
+    note right of Transform : • Pure functions\n• Data validation\n• Business calculations
+    note right of Api : • HTTP operations\n• Error handling\n• No business logic
+}
+
+package "Presentation Component Layer" as PresentationLayer {
+    component [DashboardStatsComponent] as Stats #F1F8E9
+    component [ItemListComponent] as List #F1F8E9
+    
+    note right of Stats : • @Input properties\n• @Output events\n• No business logic\n• Pure presentation
+    note right of List : • @Input properties\n• @Output events\n• No service dependencies\n• Reusable components
+}
+
+package "External Systems" as External {
+    database "REST API" as API
+    cloud "External Services" as Services
+}
+
+' Connections
+Container --> Action : injects
+Action --> API : HTTP calls
+Action --> Services : integrations
+
+Container --> Stats : @Input/@Output
+Container --> List : @Input/@Output
+
+Stats --> Container : events
+List --> Container : events
+
+@enduml
+
+@startuml Sandbox Pattern Data Flow
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam participantPadding 20
+skinparam sequenceArrowThickness 2
+skinparam roundCorner 10
+
+title Data Flow in Sandbox Pattern
+
+actor User
+participant "Smart Component" as Smart
+participant "ActionService" as Action
+participant "StateService" as State
+participant "TransformationService" as Transform
+participant "ApiService" as Api
+participant "External API" as External
+participant "Dumb Component" as Dumb
+
+== Initial Load ==
+User -> Smart : page load
+activate Smart
+Smart -> Action : loadItems()
+activate Action
+Action -> State : setLoading(true)
+Action -> Api : getItems()
+activate Api
+Api -> External : HTTP GET /items
+External --> Api : raw data
+deactivate Api
+Action -> Transform : transformApiData(rawData)
+activate Transform
+Transform --> Action : domain models
+deactivate Transform
+Action -> State : setItems(models)
+Action -> State : setLoading(false)
+State --> Smart : signals update
+Smart -> Dumb : @Input items
+deactivate Action
+deactivate Smart
+
+== User Interaction ==
+User -> Dumb : click delete
+activate Dumb
+Dumb -> Smart : @Output itemDeleted(id)
+deactivate Dumb
+activate Smart
+Smart -> Action : deleteItem(id)
+activate Action
+Action -> Api : deleteItem(id)
+activate Api
+Api -> External : HTTP DELETE /items/:id
+External --> Api : success
+deactivate Api
+Action -> State : removeItem(id)
+State --> Smart : signals update
+Smart -> Dumb : @Input updated items
+deactivate Action
+deactivate Smart
+
+@enduml
+
+@startuml Sandbox Pattern Service Dependencies
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam class {
+    BackgroundColor #F8F9FA
+    BorderColor #DEE2E6
+    FontSize 11
+}
+skinparam arrow {
+    Color #495057
+}
+
+title Service Dependency Structure
+
+class ActionService {
+    - apiService: ApiService
+    - stateService: StateService
+    - transformationService: TransformationService
+    --
+    + loadItems(): void
+    + deleteItem(id: string): void
+    + updateItem(item: Item): void
+    + readonly items: Signal<Item[]>
+    + readonly loading: Signal<boolean>
+    + readonly totalValue: Signal<number>
+}
+
+class StateService {
+    - _items: WritableSignal<Item[]>
+    - _loading: WritableSignal<boolean>
+    --
+    + readonly items: Signal<Item[]>
+    + readonly loading: Signal<boolean>
+    + readonly itemCount: Signal<number>
+    + setItems(items: Item[]): void
+    + addItem(item: Item): void
+    + removeItem(id: string): void
+    + setLoading(loading: boolean): void
+}
+
+class TransformationService {
+    --
+    + transformApiToItem(apiItem: ApiItem): Item
+    + transformItemToApi(item: Item): ApiItem
+    + calculateTotalValue(items: Item[]): number
+    + validateItem(item: Item): ValidationResult
+    + formatDisplayPrice(price: number): string
+}
+
+class ApiService {
+    - http: HttpClient
+    --
+    + getItems(): Observable<ApiItem[]>
+    + getItem(id: string): Observable<ApiItem>
+    + createItem(item: ApiItem): Observable<ApiItem>
+    + updateItem(id: string, item: ApiItem): Observable<ApiItem>
+    + deleteItem(id: string): Observable<void>
+}
+
+ActionService --> StateService : manages state
+ActionService --> TransformationService : transforms data
+ActionService --> ApiService : makes API calls
+StateService ..> "Angular Signals" : uses
+ApiService ..> HttpClient : uses
+
+note right of ActionService : Component-scoped\nBusiness logic facade
+note right of StateService : Reactive state management\nNo business logic
+note right of TransformationService : Pure functions only\nNo side effects
+note right of ApiService : HTTP operations only\nNo state management
+
+@enduml
+
+@startuml Sandbox Pattern Component Structure
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Component Architecture Structure
+
+rectangle "Container Components" {
+    component [InventoryDashboardComponent] as Dashboard #E3F2FD
+}
+
+rectangle "Presentation Components" {
+    component [DashboardStatsComponent] as Stats #F1F8E9
+    component [ItemListComponent] as ItemList #F1F8E9
+}
+
+rectangle "Sandbox Services" {
+    component [ActionService] as ActionSvc #FFF3E0
+    component [StateService] as StateSvc #E8F5E8
+    component [TransformationService] as TransformSvc #F3E5F5
+    component [ApiService] as ApiSvc #FCE4EC
+}
+
+Dashboard --> ActionSvc : injects
+ActionSvc --> StateSvc : manages
+ActionSvc --> TransformSvc : uses
+ActionSvc --> ApiSvc : calls
+Dashboard --> Stats : "@Input data"
+Dashboard --> ItemList : "@Input data"
+Stats --> Dashboard : "@Output events"
+ItemList --> Dashboard : "@Output events"
+
+note right of Dashboard
+providers:
+• ItemActionService
+• ItemStateService
+--
+• actionService: ItemActionService
+• items: Signal<Item[]>
+• loading: Signal<boolean>
+• onItemDeleted(id: string)
+• onItemSelected(item: Item)
+end note
+
+note right of Stats
+@Input() totalItems: number
+@Input() totalValue: number
+@Input() lowStockCount: number
+--
+Pure presentation only
+No service dependencies
+end note
+
+note right of ItemList
+@Input() items: Item[]
+@Input() loading: boolean
+@Input() selectedId?: string
+@Output() itemDeleted: EventEmitter<string>
+@Output() itemSelected: EventEmitter<Item>
+--
++ onDelete(id: string)
++ onSelect(item: Item)
+end note
+
+@enduml
+
+@startuml Sandbox Pattern Testing Strategy
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam package {
+    FontSize 12
+    BackgroundColor #F8F9FA
+    BorderColor #DEE2E6
+}
+
+title Testing Architecture
+
+package "Unit Tests" {
+    [ActionService.spec.ts] as ActionTest
+    [StateService.spec.ts] as StateTest  
+    [TransformationService.spec.ts] as TransformTest
+    [ApiService.spec.ts] as ApiTest
+    
+    note right of ActionTest : • Mock all dependencies\n• Test business logic\n• Verify service orchestration
+    note right of StateTest : • Test signal updates\n• Verify computed values\n• Test state mutations
+    note right of TransformTest : • Test pure functions\n• Verify transformations\n• Edge case testing
+    note right of ApiTest : • Mock HttpClient\n• Test HTTP operations\n• Error handling
+}
+
+package "Component Tests" {
+    [InventoryDashboard.spec.ts] as DashboardTest
+    [DashboardStats.spec.ts] as StatsTest
+    [ItemList.spec.ts] as ListTest
+    
+    note right of DashboardTest : • Mock ActionService\n• Test user interactions\n• Verify data flow
+    note right of StatsTest : • Test @Input properties\n• Pure component testing\n• No mocking needed
+    note right of ListTest : • Test @Input/@Output\n• Event emission testing\n• Template rendering
+}
+
+package "Integration Tests" {
+    [E2E Tests] as E2E
+    [Feature Tests] as Feature
+    
+    note right of E2E : • Full user workflows\n• Real API interactions\n• End-to-end validation
+    note right of Feature : • Complete feature testing\n• Service integration\n• State management flow
+}
+
+ActionTest --> "Mock Objects" : uses
+StateTest --> "Signal Testing" : verifies
+TransformTest --> "Pure Functions" : tests
+ApiTest --> "HttpTestingController" : uses
+
+DashboardTest --> "Component Testing" : uses
+StatsTest --> "Shallow Testing" : uses
+ListTest --> "Event Testing" : uses
+
+@enduml

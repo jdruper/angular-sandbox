@@ -1,7 +1,45 @@
 <div class="inventory-dashboard">
   <header class="dashboard-header">
-    <h1>Inventory Dashboard</h1>
-    <p class="subtitle">Sandbox Pattern Example - Smart Container Component</p>
+    <h1>Barcode Audit Dashboard</h1>
+    <p class="subtitle">Sandbox Pattern PWA Example - Offline-First Audit Management</p>
+    
+    <!-- PWA Status Indicators -->
+    <div class="status-indicators">
+      <!-- Network Status -->
+      <div class="network-status" [class.offline]="isOffline()">
+        @if (isOnline()) {
+          <span class="status-dot online"></span>
+          <span>Online</span>
+        } @else {
+          <span class="status-dot offline"></span>
+          <span>Offline</span>
+        }
+      </div>
+
+      <!-- Sync Status -->
+      @if (pendingAuditsCount() > 0 || isSyncing()) {
+        <div class="sync-status">
+          @if (isSyncing()) {
+            <span class="status-dot syncing"></span>
+            <span>Syncing...</span>
+          } @else {
+            <span class="status-dot pending"></span>
+            <span>{{ pendingAuditsCount() }} pending</span>
+            @if (isOnline()) {
+              <button class="sync-btn" (click)="syncToServer()">Sync</button>
+            }
+          }
+        </div>
+      }
+
+      <!-- Sync Error -->
+      @if (syncError()) {
+        <div class="sync-error">
+          <span>Sync error: {{ syncError() }}</span>
+          <button class="close-btn" (click)="clearSyncError()">×</button>
+        </div>
+      }
+    </div>
   </header>
 
   <!-- Error Display -->
@@ -12,39 +50,69 @@
     </div>
   }
 
-  <!-- Dashboard Stats - Dumb Component -->
+  <!-- Dashboard Stats - Presentation Component -->
   <app-dashboard-stats
-    [totalItems]="itemCount()"
-    [totalValue]="totalInventoryValue()"
-    [lowStockCount]="lowStockItems().length"
+    [totalItems]="auditCount()"
+    [totalValue]="auditSummary().syncedAudits"
+    [lowStockCount]="auditSummary().pendingAudits"
     [loading]="loading()"
   />
 
-  <!-- Item List - Dumb Component -->
+  <!-- Audit List - Presentation Component -->
   <section class="items-section">
-    <h2>Items</h2>
-    <app-item-list
-      [items]="items()"
-      [loading]="loading()"
-      [selectedItemId]="selectedItem()?.id || null"
-      (itemSelected)="onItemSelected($event)"
-      (itemDeleted)="onItemDeleted($event)"
-      (itemEdited)="onItemEdited($event)"
-    />
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2>Audit Records</h2>
+      <button 
+        (click)="addTestAudit()" 
+        style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Add Test Audit
+      </button>
+    </div>
+    <!-- Simple audit list for now - can be enhanced later -->
+    @if (loading()) {
+      <div class="loading">Loading audit records...</div>
+    } @else if (audits().length === 0) {
+      <div class="empty-state">No audit records found</div>
+    } @else {
+      <div class="audit-list">
+        @for (audit of audits(); track audit.externalId) {
+          <div class="audit-card" [class.pending]="!audit.synced">
+            <div class="audit-header">
+              <h4>{{ audit.slotNumber }}</h4>
+              <span class="sync-status" [class.synced]="audit.synced">
+                {{ audit.synced ? 'Synced' : 'Pending' }}
+              </span>
+            </div>
+            <div class="audit-details">
+              <div><strong>Barcode:</strong> {{ audit.primaryBarcode }}</div>
+              <div><strong>Location:</strong> {{ audit.warehouseLocation }}</div>
+              <div><strong>Auditor:</strong> {{ audit.auditors }}</div>
+              <div><strong>Date:</strong> {{ audit.dateReceived | date:'short' }}</div>
+            </div>
+            <div class="audit-actions">
+              <button (click)="onAuditSelected(audit)">View</button>
+              <button (click)="onAuditDeleted(audit.externalId)" class="delete-btn">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
   </section>
 
-  <!-- Selected Item Details -->
-  @if (selectedItem()) {
+  <!-- Selected Audit Details -->
+  @if (selectedAudit()) {
     <section class="selected-item">
-      <h3>Selected Item Details</h3>
+      <h3>Selected Audit Details</h3>
       <div class="item-details-card">
-        <h4>{{ selectedItem()!.name }}</h4>
-        <p>{{ selectedItem()!.description }}</p>
+        <h4>Slot: {{ selectedAudit()!.slotNumber }}</h4>
+        <p>{{ selectedAudit()!.comments }}</p>
         <div class="details-grid">
-          <div><strong>Category:</strong> {{ selectedItem()!.category }}</div>
-          <div><strong>Quantity:</strong> {{ selectedItem()!.quantity }}</div>
-          <div><strong>Price:</strong> ${{ selectedItem()!.price | number:'1.2-2' }}</div>
-          <div><strong>Total Value:</strong> ${{ (selectedItem()!.price * selectedItem()!.quantity) | number:'1.2-2' }}</div>
+          <div><strong>Barcode:</strong> {{ selectedAudit()!.primaryBarcode }}</div>
+          <div><strong>Logistics:</strong> {{ selectedAudit()!.warehouseLogistics }}</div>
+          <div><strong>Location:</strong> {{ selectedAudit()!.warehouseLocation }}</div>
+          <div><strong>Auditor:</strong> {{ selectedAudit()!.auditors }}</div>
+          <div><strong>Date:</strong> {{ selectedAudit()!.dateReceived | date:'short' }}</div>
+          <div><strong>Time:</strong> {{ selectedAudit()!.timeReceived }}</div>
         </div>
       </div>
     </section>

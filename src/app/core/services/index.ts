@@ -1,2 +1,2 @@
 // Core services
-export * from './data.service';
+// Currently no services - they have been migrated to sandbox/services
